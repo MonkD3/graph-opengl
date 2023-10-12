@@ -9,14 +9,50 @@
 #include <stdio.h>
 #include <vector>
 
-GLint WIDTH;
-GLint HEIGHT;
-
 void framebuffer_size_callback(GLFWwindow* window, int width, int height){
-    WIDTH=width;
-    HEIGHT=height;
     glViewport(0, 0, width, height);
+
+    float scale[4] = {
+        ((float) height)/width , 0.0f,
+        0.0f,                    1.0f
+    };
+
+    GLint shaderProgram;
+    glGetIntegerv(GL_CURRENT_PROGRAM,&shaderProgram);
+    glUniformMatrix2fv(glGetUniformLocation(shaderProgram, "scale"), 1, false, scale);
+
 }  
+
+void mouseCallback(GLFWwindow* window, int button, int action, int mods){
+    static double mouseX, mouseY;
+    if(button == GLFW_MOUSE_BUTTON_LEFT) {
+        int width, height;
+        glfwGetWindowSize(window, &width, &height);
+        // Normalize x mouse coords : (2.f*mouseX - WIDTH)/WIDTH 
+        // Normalize y mouse coords : (HEIGHT - 2.f*mouseY)/HEIGHT;
+        
+        if (action == GLFW_PRESS) {
+            //getting cursor position
+            glfwGetCursorPos(window, &mouseX, &mouseY);
+            mouseX = (2.f*mouseX - width)/width;
+            mouseY = (height - 2.f*mouseY)/height;
+        }
+        else if (action == GLFW_RELEASE) {
+            double newMouseX, newMouseY;
+            glfwGetCursorPos(window, &newMouseX, &newMouseY);
+            newMouseX = (2.f*newMouseX - width)/width;
+            newMouseY = (height - 2.f*newMouseY)/height;
+
+            static double translationX=0., translationY=0.;
+            translationX += newMouseX - mouseX;
+            translationY += newMouseY - mouseY;
+
+            GLint shaderProgram;
+            glGetIntegerv(GL_CURRENT_PROGRAM,&shaderProgram);
+            glUniform2f(glGetUniformLocation(shaderProgram, "translation"), translationX, translationY);
+        }
+    }
+}
 
 int main(int argc, char** argv){
     
@@ -29,6 +65,7 @@ int main(int argc, char** argv){
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
+
     GLFWwindow* window = glfwCreateWindow(800, 600, "LearnOpenGL", NULL, NULL);
     if (window == NULL) {
         printf("Failed to create GLFW window");
@@ -39,6 +76,8 @@ int main(int argc, char** argv){
 
     // Callback for the sizing of the window (allow resizing)
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    glfwSetMouseButtonCallback(window, mouseCallback);
+    glfwSetInputMode(window, GLFW_STICKY_MOUSE_BUTTONS, GL_FALSE);
 
     if (!gladLoadGL((GLADloadfunc)glfwGetProcAddress)) {
         printf("Failed to initialize GLAD");
@@ -134,15 +173,11 @@ int main(int argc, char** argv){
     // FPS seems to be set at 60 for my laptop
     while(!glfwWindowShouldClose(window)) {
         glfwPollEvents();    
+
+
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        float scale[4] = {
-            ((float) HEIGHT)/WIDTH , 0.0f,
-            0.0f,                    1.0f
-        };
-
-        glUniformMatrix2fv(glGetUniformLocation(shaderProgram, "scale"), 1, false, scale);
 
         double t = glfwGetTime();
         for (int i = 0; i < 6; i++){
