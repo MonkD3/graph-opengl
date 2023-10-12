@@ -1,6 +1,8 @@
 #include "headers/glad/gl.h"
 #include <GLFW/glfw3.h>
 #include "headers/shader_functions.hpp"
+#include <cmath>
+#include <math.h>
 #include <sstream>
 #include <stdlib.h>
 #include <stdio.h>
@@ -8,7 +10,12 @@
 #include <fstream>
 #include <vector>
 
+GLint WIDTH;
+GLint HEIGHT;
+
 void framebuffer_size_callback(GLFWwindow* window, int width, int height){
+    WIDTH=width;
+    HEIGHT=height;
     glViewport(0, 0, width, height);
 }  
 
@@ -60,14 +67,32 @@ int main(int argc, char** argv){
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
 
+
+    std::vector<float> r = {
+        hypotf(0.5f, 0.5f),
+        hypotf(0.5f, 0.5f),
+        hypotf(0.5f, 0.5f),
+        hypotf(0.5f, 0.6f),
+        hypotf(0.5f, 0.4f),
+        hypotf(0.5f, 0.6f),
+    };
     float vertices[] = {
     //    x      y     R     G     B
-        -0.5f, -0.5f, 1.0f, 0.5f, 0.2f,
-         0.5f, -0.5f, 0.0f, 0.5f, 0.2f,
-        -0.5f,  0.5f, 1.0f, 0.5f, 0.2f,
-         0.6f, -0.5f, 1.0f, 0.5f, 0.4f,
-        -0.4f,  0.5f, 0.0f, 0.5f, 0.4f,
-         0.6f,  0.5f, 1.0f, 0.5f, 0.4f
+        -0.5f, -0.5f, 0.5f, 0.0f, 0.2f,
+         0.5f, -0.5f, 0.7f, 0.0f, 0.2f,
+        -0.5f,  0.5f, 1.0f, 0.0f, 0.2f,
+         0.6f, -0.5f, 1.0f, 0.0f, 0.5f,
+        -0.4f,  0.5f, 1.0f, 0.0f, 0.7f,
+         0.6f,  0.5f, 1.0f, 0.0f, 1.0f
+    };
+
+    std::vector<float> phi = {
+        std::atan2(vertices[1], vertices[0]),
+        std::atan2(vertices[6], vertices[5]),
+        std::atan2(vertices[11], vertices[10]),
+        std::atan2(vertices[16], vertices[15]),
+        std::atan2(vertices[21], vertices[20]),
+        std::atan2(vertices[26], vertices[26])
     };
 
     // Create the vertex buffer object
@@ -101,6 +126,23 @@ int main(int argc, char** argv){
         glfwPollEvents();    
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
+
+        float scale[4] = {
+            ((float) HEIGHT)/WIDTH , 0.0f,
+            0.0f,                   1.0f
+        };
+
+        glUniformMatrix2fv(glGetUniformLocation(shaderProgram, "scale"), 1, false, scale);
+
+        double t = glfwGetTime();
+        for (int i = 0; i < 6; i++){
+            vertices[5*i] = (float) r[i]*std::cos(0.05*M_PI*t + phi[i]);
+            vertices[5*i+1] = (float) r[i]*std::sin(0.05*M_PI*t + phi[i]);
+        }
+        glBindBuffer(GL_ARRAY_BUFFER, VBO);  // Make it the current openGL object
+                                             // Add data to the current buffer 
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STREAM_DRAW);
+
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
         glfwSwapBuffers(window);
