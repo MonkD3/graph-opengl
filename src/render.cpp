@@ -1,13 +1,12 @@
 #include "headers/glad/gl.h"
 #include <GLFW/glfw3.h>
 #include "headers/shader_functions.hpp"
+#include "headers/graph.hpp"
 #include <cmath>
+#include <cstddef>
 #include <math.h>
-#include <sstream>
 #include <stdlib.h>
 #include <stdio.h>
-#include <iostream>
-#include <fstream>
 #include <vector>
 
 GLint WIDTH;
@@ -67,32 +66,43 @@ int main(int argc, char** argv){
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
 
+    // Array of vertices
+    Vertex* vtx = new Vertex[6];
 
-    std::vector<float> r = {
-        hypotf(0.5f, 0.5f),
-        hypotf(0.5f, 0.5f),
-        hypotf(0.5f, 0.5f),
-        hypotf(0.5f, 0.6f),
-        hypotf(0.5f, 0.4f),
-        hypotf(0.5f, 0.6f),
-    };
-    float vertices[] = {
-    //    x      y     R     G     B
-        -0.5f, -0.5f, 0.5f, 0.0f, 0.2f,
-         0.5f, -0.5f, 0.7f, 0.0f, 0.2f,
-        -0.5f,  0.5f, 1.0f, 0.0f, 0.2f,
-         0.6f, -0.5f, 1.0f, 0.0f, 0.5f,
-        -0.4f,  0.5f, 1.0f, 0.0f, 0.7f,
-         0.6f,  0.5f, 1.0f, 0.0f, 1.0f
-    };
+    // Initialize their positions
+    vtx[0].x = -0.5f; vtx[0].y = -0.5f;
+    vtx[1].x =  0.5f; vtx[1].y = -0.5f;
+    vtx[2].x = -0.5f; vtx[2].y =  0.5f;
+    vtx[3].x =  0.6f; vtx[3].y = -0.5f;
+    vtx[4].x = -0.4f; vtx[4].y =  0.5f;
+    vtx[5].x =  0.6f; vtx[5].y =  0.5f;
 
+    // Initialize their colors
+    vtx[0].c[0] = 0.5f;vtx[0].c[1] = 0.0f;vtx[0].c[2] = 0.2f;
+    vtx[1].c[0] = 0.7f;vtx[1].c[1] = 0.0f;vtx[1].c[2] = 0.2f;
+    vtx[2].c[0] = 1.0f;vtx[2].c[1] = 0.0f;vtx[2].c[2] = 0.2f;
+    vtx[3].c[0] = 1.0f;vtx[3].c[1] = 0.0f;vtx[3].c[2] = 0.5f;
+    vtx[4].c[0] = 1.0f;vtx[4].c[1] = 0.0f;vtx[4].c[2] = 0.7f;
+    vtx[5].c[0] = 1.0f;vtx[5].c[1] = 0.0f;vtx[5].c[2] = 1.0f;
+
+    // Compute the initial phase
     std::vector<float> phi = {
-        std::atan2(vertices[1], vertices[0]),
-        std::atan2(vertices[6], vertices[5]),
-        std::atan2(vertices[11], vertices[10]),
-        std::atan2(vertices[16], vertices[15]),
-        std::atan2(vertices[21], vertices[20]),
-        std::atan2(vertices[26], vertices[26])
+        std::atan2(vtx[0].x, vtx[0].y),
+        std::atan2(vtx[1].x, vtx[1].y),
+        std::atan2(vtx[2].x, vtx[2].y),
+        std::atan2(vtx[3].x, vtx[3].y),
+        std::atan2(vtx[4].x, vtx[4].y),
+        std::atan2(vtx[5].x, vtx[5].y)
+    };
+
+    // Compute the radius
+    std::vector<float> r = {
+        hypotf(vtx[0].x, vtx[0].y),
+        hypotf(vtx[1].x, vtx[1].y),
+        hypotf(vtx[2].x, vtx[2].y),
+        hypotf(vtx[3].x, vtx[3].y),
+        hypotf(vtx[4].x, vtx[4].y),
+        hypotf(vtx[5].x, vtx[5].y)
     };
 
     // Create the vertex buffer object
@@ -100,14 +110,14 @@ int main(int argc, char** argv){
     glGenBuffers(1, &VBO);   // Generate the buffer
     glBindBuffer(GL_ARRAY_BUFFER, VBO);  // Make it the current openGL object
     // Add data to the current buffer 
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, 6*sizeof(Vertex), vtx, GL_STATIC_DRAW);
     // 3. then set our vertex attributes pointers
     glVertexAttribPointer(
             0,                  // must math the layout in the shader
             2,                  // size
             GL_FLOAT,           // Type
             GL_FALSE,           // Are the coords normalized ?
-            5*sizeof(float),    // Stride
+            sizeof(Vertex),     // Stride
             (void*)0            // offset
     );
     glEnableVertexAttribArray(0);
@@ -116,8 +126,8 @@ int main(int argc, char** argv){
             3,                       // size
             GL_FLOAT,                // Type
             GL_TRUE,                 // Are the coords normalized ?
-            5*sizeof(float),         // Stride
-            (void*)(2*sizeof(float)) // offset
+            sizeof(Vertex),         // Stride
+            (void*)(offsetof(Vertex, c)) // offset
     );
     glEnableVertexAttribArray(1);
 
@@ -129,25 +139,26 @@ int main(int argc, char** argv){
 
         float scale[4] = {
             ((float) HEIGHT)/WIDTH , 0.0f,
-            0.0f,                   1.0f
+            0.0f,                    1.0f
         };
 
         glUniformMatrix2fv(glGetUniformLocation(shaderProgram, "scale"), 1, false, scale);
 
         double t = glfwGetTime();
         for (int i = 0; i < 6; i++){
-            vertices[5*i] = (float) r[i]*std::cos(0.05*M_PI*t + phi[i]);
-            vertices[5*i+1] = (float) r[i]*std::sin(0.05*M_PI*t + phi[i]);
+            vtx[i].x = (float) r[i]*std::cos(0.05*M_PI*t + phi[i]);
+            vtx[i].y = (float) r[i]*std::sin(0.05*M_PI*t + phi[i]);
         }
         glBindBuffer(GL_ARRAY_BUFFER, VBO);  // Make it the current openGL object
                                              // Add data to the current buffer 
-        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STREAM_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, 6*sizeof(Vertex), vtx, GL_STREAM_DRAW);
 
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
         glfwSwapBuffers(window);
     }
 
+    delete [] vtx;
     glfwTerminate();
     return EXIT_SUCCESS;
 }
