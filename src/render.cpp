@@ -9,6 +9,8 @@
 #include <stdio.h>
 #include <vector>
 
+bool leftButtonPressed = false;
+
 void framebuffer_size_callback(GLFWwindow* window, int width, int height){
     glViewport(0, 0, width, height);
 
@@ -23,33 +25,38 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height){
 
 }  
 
+void cursorCallback(GLFWwindow* window, double x, double y){
+    static bool first = true;
+    static double mouseX=0., mouseY=0.;
+    static double translationX = 0., translationY = 0.;
+
+    int width, height;
+    glfwGetWindowSize(window, &width, &height);
+    x = (2.f*x - width)/width;
+    y = (height - 2.f*y)/height;
+
+    if (!first && leftButtonPressed){
+
+        translationX -= mouseX - x;
+        translationY -= mouseY - y;
+
+        GLint shaderProgram;
+        glGetIntegerv(GL_CURRENT_PROGRAM,&shaderProgram);
+        glUniform2f(glGetUniformLocation(shaderProgram, "translation"), translationX, translationY);
+    }
+
+    mouseX = x;
+    mouseY = y;
+    first = false;
+}
+
 void mouseCallback(GLFWwindow* window, int button, int action, int mods){
-    static double mouseX, mouseY;
     if(button == GLFW_MOUSE_BUTTON_LEFT) {
-        int width, height;
-        glfwGetWindowSize(window, &width, &height);
-        // Normalize x mouse coords : (2.f*mouseX - WIDTH)/WIDTH 
-        // Normalize y mouse coords : (HEIGHT - 2.f*mouseY)/HEIGHT;
-        
         if (action == GLFW_PRESS) {
-            //getting cursor position
-            glfwGetCursorPos(window, &mouseX, &mouseY);
-            mouseX = (2.f*mouseX - width)/width;
-            mouseY = (height - 2.f*mouseY)/height;
+            leftButtonPressed = true;
         }
         else if (action == GLFW_RELEASE) {
-            double newMouseX, newMouseY;
-            glfwGetCursorPos(window, &newMouseX, &newMouseY);
-            newMouseX = (2.f*newMouseX - width)/width;
-            newMouseY = (height - 2.f*newMouseY)/height;
-
-            static double translationX=0., translationY=0.;
-            translationX += newMouseX - mouseX;
-            translationY += newMouseY - mouseY;
-
-            GLint shaderProgram;
-            glGetIntegerv(GL_CURRENT_PROGRAM,&shaderProgram);
-            glUniform2f(glGetUniformLocation(shaderProgram, "translation"), translationX, translationY);
+            leftButtonPressed = false;
         }
     }
 }
@@ -77,6 +84,7 @@ int main(int argc, char** argv){
     // Callback for the sizing of the window (allow resizing)
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetMouseButtonCallback(window, mouseCallback);
+    glfwSetCursorPosCallback(window, cursorCallback);
     glfwSetInputMode(window, GLFW_STICKY_MOUSE_BUTTONS, GL_FALSE);
 
     if (!gladLoadGL((GLADloadfunc)glfwGetProcAddress)) {
