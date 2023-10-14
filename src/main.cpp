@@ -1,28 +1,25 @@
 #include "headers/glad/gl.h"
 #include <GLFW/glfw3.h>
 #include "headers/shader_functions.hpp"
-#include "headers/graph.hpp"
+#include "headers/objects.hpp"
 #include <cmath>
 #include <cstddef>
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <vector>
+#include <array>
 
 bool leftButtonPressed = false;
 
+float zoom = 1.0f;
+float scale = 1.0f;
+std::array<float, 4> rotation;
+
+
 void framebuffer_size_callback(GLFWwindow* window, int width, int height){
     glViewport(0, 0, width, height);
-
-    float scale[4] = {
-        ((float) height)/width , 0.0f,
-        0.0f,                    1.0f
-    };
-
-    GLint shaderProgram;
-    glGetIntegerv(GL_CURRENT_PROGRAM,&shaderProgram);
-    glUniformMatrix2fv(glGetUniformLocation(shaderProgram, "scale"), 1, false, scale);
-
+    scale = ((float) height)/width;
 }  
 
 void cursorCallback(GLFWwindow* window, double x, double y){
@@ -34,20 +31,21 @@ void cursorCallback(GLFWwindow* window, double x, double y){
     glfwGetWindowSize(window, &width, &height);
     x = (2.f*x - width)/width;
     y = (height - 2.f*y)/height;
-
-    if (!first && leftButtonPressed){
-
-        translationX -= mouseX - x;
-        translationY -= mouseY - y;
-
-        GLint shaderProgram;
-        glGetIntegerv(GL_CURRENT_PROGRAM,&shaderProgram);
-        glUniform2f(glGetUniformLocation(shaderProgram, "translation"), translationX, translationY);
+    if (first || !leftButtonPressed){
+        mouseX = x;
+        mouseY = y;
+        first = false;
+        return;
     }
 
+    translationX -= mouseX - x;
+    translationY -= mouseY - y;
+
+    GLint shaderProgram;
+    glGetIntegerv(GL_CURRENT_PROGRAM, &shaderProgram);
+    glUniform2f(glGetUniformLocation(shaderProgram, "translation"), translationX, translationY);
     mouseX = x;
     mouseY = y;
-    first = false;
 }
 
 void mouseCallback(GLFWwindow* window, int button, int action, int mods){
@@ -62,6 +60,9 @@ void mouseCallback(GLFWwindow* window, int button, int action, int mods){
 }
 
 int main(int argc, char** argv){
+
+    rotation[0] = 1.0f; rotation[1] = 0.0f;
+    rotation[2] = 0.0f; rotation[3] = 1.0f;
     
     if (!glfwInit()){
         printf("Failed to initialize glfw\n");
@@ -132,26 +133,6 @@ int main(int argc, char** argv){
     vtx[4].c[0] = 1.0f;vtx[4].c[1] = 0.0f;vtx[4].c[2] = 0.7f;
     vtx[5].c[0] = 1.0f;vtx[5].c[1] = 0.0f;vtx[5].c[2] = 1.0f;
 
-    // Compute the initial phase
-    std::vector<float> phi = {
-        std::atan2(vtx[0].x, vtx[0].y),
-        std::atan2(vtx[1].x, vtx[1].y),
-        std::atan2(vtx[2].x, vtx[2].y),
-        std::atan2(vtx[3].x, vtx[3].y),
-        std::atan2(vtx[4].x, vtx[4].y),
-        std::atan2(vtx[5].x, vtx[5].y)
-    };
-
-    // Compute the radius
-    std::vector<float> r = {
-        hypotf(vtx[0].x, vtx[0].y),
-        hypotf(vtx[1].x, vtx[1].y),
-        hypotf(vtx[2].x, vtx[2].y),
-        hypotf(vtx[3].x, vtx[3].y),
-        hypotf(vtx[4].x, vtx[4].y),
-        hypotf(vtx[5].x, vtx[5].y)
-    };
-
     // Create the vertex buffer object
     GLuint VBO;
     glGenBuffers(1, &VBO);   // Generate the buffer
@@ -178,24 +159,28 @@ int main(int argc, char** argv){
     );
     glEnableVertexAttribArray(1);
 
+    GLuint VBO_disk;
+    glGenBuffers(1, &VBO_disk);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO_disk);
+
     // FPS seems to be set at 60 for my laptop
     while(!glfwWindowShouldClose(window)) {
         glfwPollEvents();    
-
-
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-
         double t = glfwGetTime();
-        for (int i = 0; i < 6; i++){
-            vtx[i].x = (float) r[i]*std::cos(0.05*M_PI*t + phi[i]);
-            vtx[i].y = (float) r[i]*std::sin(0.05*M_PI*t + phi[i]);
-        }
-        glBindBuffer(GL_ARRAY_BUFFER, VBO);  // Make it the current openGL object
-                                             // Add data to the current buffer 
-        glBufferData(GL_ARRAY_BUFFER, 6*sizeof(Vertex), vtx, GL_STREAM_DRAW);
+        double s = sinf(0.05f*t*M_PI);
+        double c = cosf(0.05f*t*M_PI);
+        rotation[0] = scale * c; rotation[1] = -s;
+        rotation[2] = scale * s; rotation[3] = c;
 
+        GLint shaderProgram;
+        glGetIntegerv(GL_CURRENT_PROGRAM, &shaderProgram);
+        glUniformMatrix2fv(glGetUniformLocation(shaderProgram, "rotation"), 1, false, &rotation[0]);
+
+        glBindBuffer(GL_ARRAY_BUFFER, VBO);  
+        glBufferData(GL_ARRAY_BUFFER, 6*sizeof(Vertex), vtx, GL_STREAM_DRAW);
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
         glfwSwapBuffers(window);
