@@ -123,11 +123,6 @@ int main(int argc, char** argv){
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
 
-    // Create the vertex array object
-    GLuint VAO;
-    glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO);
-
     // Array of vertices
     Vertex* vtx = new Vertex[6];
 
@@ -147,10 +142,15 @@ int main(int argc, char** argv){
     vtx[4].c[0] = 1.0f;vtx[4].c[1] = 0.0f;vtx[4].c[2] = 0.7f;
     vtx[5].c[0] = 1.0f;vtx[5].c[1] = 0.0f;vtx[5].c[2] = 1.0f;
 
+    // Create the vertex array object
+    GLuint VAO[2];
+    glGenVertexArrays(2, VAO);
+    glBindVertexArray(VAO[0]);
+
     // Create the vertex buffer object
-    GLuint VBO;
-    glGenBuffers(1, &VBO);   // Generate the buffer
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);  // Make it the current openGL object
+    GLuint VBO[2];
+    glGenBuffers(2, VBO);   // Generate the buffer
+    glBindBuffer(GL_ARRAY_BUFFER, VBO[0]);  // Make it the current openGL object
     // Add data to the current buffer 
     glBufferData(GL_ARRAY_BUFFER, 6*sizeof(Vertex), vtx, GL_STATIC_DRAW);
     // 3. then set our vertex attributes pointers
@@ -173,9 +173,34 @@ int main(int argc, char** argv){
     );
     glEnableVertexAttribArray(1);
 
-    GLuint VBO_disk;
-    glGenBuffers(1, &VBO_disk);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO_disk);
+    Vertex *dv = new Vertex[10];
+    Disk d(0.7, 0.7);
+    d.v = dv;
+    d.draw();
+    glBindVertexArray(VAO[1]);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO[1]);  // Make it the current openGL object
+    // Add data to the current buffer 
+    glBufferData(GL_ARRAY_BUFFER, 10*sizeof(Vertex), dv, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(
+            0,                  // must math the layout in the shader
+            2,                  // size
+            GL_FLOAT,           // Type
+            GL_FALSE,           // Are the coords normalized ?
+            sizeof(Vertex),     // Stride
+            (void*)0            // offset
+    );
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(
+            1,                       // must math the layout in the shader
+            3,                       // size
+            GL_FLOAT,                // Type
+            GL_TRUE,                 // Are the coords normalized ?
+            sizeof(Vertex),         // Stride
+            (void*)(offsetof(Vertex, c)) // offset
+    );
+    glEnableVertexAttribArray(1);
+    
 
     // FPS seems to be set at 60 for my laptop
     while(!glfwWindowShouldClose(window)) {
@@ -193,9 +218,15 @@ int main(int argc, char** argv){
         glGetIntegerv(GL_CURRENT_PROGRAM, &shaderProgram);
         glUniformMatrix2fv(glGetUniformLocation(shaderProgram, "rotation"), 1, false, &rotation[0]);
 
-        glBindBuffer(GL_ARRAY_BUFFER, VBO);  
+        glBindVertexArray(VAO[0]);
+        glBindBuffer(GL_ARRAY_BUFFER, VBO[0]);  
         glBufferData(GL_ARRAY_BUFFER, 6*sizeof(Vertex), vtx, GL_STREAM_DRAW);
         glDrawArrays(GL_TRIANGLES, 0, 6);
+
+        glBindVertexArray(VAO[1]);
+        glBindBuffer(GL_ARRAY_BUFFER, VBO[1]);  
+        glBufferData(GL_ARRAY_BUFFER, 10*sizeof(Vertex), dv, GL_STREAM_DRAW);
+        glDrawArrays(GL_TRIANGLE_FAN, 0, 10);
 
         glfwSwapBuffers(window);
     }

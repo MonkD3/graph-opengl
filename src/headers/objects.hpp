@@ -38,7 +38,7 @@ struct Disk {
 
     void draw(){
         
-        for (int i = 0; i < ndots + 0; i++){
+        for (int i = 0; i < ndots; i++){
             float px = r*cosf(i*2.f*M_PI/ndots);
             float py = r*sinf(i*2.f*M_PI/ndots);
             v[i].x = x + px; 
