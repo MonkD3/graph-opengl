@@ -17,11 +17,23 @@ float scale = 1.0f;
 std::array<float, 4> rotation;
 
 
+// Callback on window resize
 void framebuffer_size_callback(GLFWwindow* window, int width, int height){
     glViewport(0, 0, width, height);
     scale = ((float) height)/width;
 }  
 
+// Callback on scrolling with mouse or pad. 
+//   - Classical mouse will only provide yoffset 
+//   - pad may provide x and y offsets
+//
+//   On the mouse from my PC it's only +1 or -1
+void scrollCallback(GLFWwindow* window, double xoffset, double yoffset){
+    zoom += 0.03f * (float) yoffset;
+    zoom = fmax(0.1f, zoom);
+}
+
+// Callback on cursor movement
 void cursorCallback(GLFWwindow* window, double x, double y){
     static bool first = true;
     static double mouseX=0., mouseY=0.;
@@ -48,6 +60,7 @@ void cursorCallback(GLFWwindow* window, double x, double y){
     mouseY = y;
 }
 
+// Callback on mouse buttons
 void mouseCallback(GLFWwindow* window, int button, int action, int mods){
     if(button == GLFW_MOUSE_BUTTON_LEFT) {
         if (action == GLFW_PRESS) {
@@ -86,6 +99,7 @@ int main(int argc, char** argv){
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetMouseButtonCallback(window, mouseCallback);
     glfwSetCursorPosCallback(window, cursorCallback);
+    glfwSetScrollCallback(window, scrollCallback);
     glfwSetInputMode(window, GLFW_STICKY_MOUSE_BUTTONS, GL_FALSE);
 
     if (!gladLoadGL((GLADloadfunc)glfwGetProcAddress)) {
@@ -172,8 +186,8 @@ int main(int argc, char** argv){
         double t = glfwGetTime();
         double s = sinf(0.05f*t*M_PI);
         double c = cosf(0.05f*t*M_PI);
-        rotation[0] = scale * c; rotation[1] = -s;
-        rotation[2] = scale * s; rotation[3] = c;
+        rotation[0] = zoom * scale * c; rotation[1] = zoom * -s;
+        rotation[2] = zoom * scale * s; rotation[3] = zoom * c;
 
         GLint shaderProgram;
         glGetIntegerv(GL_CURRENT_PROGRAM, &shaderProgram);
