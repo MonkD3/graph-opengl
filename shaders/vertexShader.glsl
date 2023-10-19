@@ -9,7 +9,7 @@ out vec4 vertexColor;
 out vec2 pos;
 
 void main(){
-    radius = 0.5f; // constant for now, can be in the layout later
+    radius = 0.15f; // constant for now, can be in the layout later
     gl_Position = vec4(rotation * (radius* vPos + cPos) + translation, 0.0, 1.0);
     vertexColor = vec4(color, 1.0);
     pos = vPos;

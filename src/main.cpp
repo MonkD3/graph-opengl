@@ -4,6 +4,7 @@
 #include "headers/objects.hpp"
 #include <cmath>
 #include <cstddef>
+#include <cstdlib>
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -11,13 +12,14 @@
 #include <array>
 
 bool leftButtonPressed = false;
+bool paused = false;
 
 float zoom = 1.0f;
 float scale = 1.0f;
 std::array<float, 4> rotation;
 
-void keyCallback(GLFWwindow* window){
-
+void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) paused = !paused; 
 }
 
 // Callback on window resize
@@ -84,7 +86,7 @@ int main(int argc, char** argv){
         printf("Failed to initialize glfw\n");
         return EXIT_FAILURE;
     }
-    glfwWindowHint(GLFW_SAMPLES, 1); // 2x antialiasing
+    glfwWindowHint(GLFW_SAMPLES, 1); // 1x antialiasing
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -103,6 +105,7 @@ int main(int argc, char** argv){
     glfwSetMouseButtonCallback(window, mouseCallback);
     glfwSetCursorPosCallback(window, cursorCallback);
     glfwSetScrollCallback(window, scrollCallback);
+    glfwSetKeyCallback(window, keyCallback);
     glfwSetInputMode(window, GLFW_STICKY_MOUSE_BUTTONS, GL_FALSE);
 
     if (!gladLoadGL((GLADloadfunc)glfwGetProcAddress)) {
@@ -140,7 +143,7 @@ int main(int argc, char** argv){
     GLuint EBO;
     glGenBuffers(1, &EBO);
 
-    const int n_circles = 2;
+    const int n_circles = 100;
     float vertices[8] = {
         1.0f,  1.0f,
         1.0f, -1.0f,
@@ -152,14 +155,11 @@ int main(int argc, char** argv){
         1, 2, 3
     };
 
-    float positions[2*n_circles] = {
-        -0.5f, 0.0f,
-         0.5f, 0.0f
-    };
-    float colors[3*n_circles] = {
-         0.7f, 0.0f, 0.3f,
-         0.3f, 0.0f, 0.7f
-    };
+    float* positions = new float[n_circles * 2];
+    for (int i = 0; i < 2*n_circles; i++) positions[i] = -1.0f + 2.0f*static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+
+    float* colors = new float[n_circles * 3];
+    for (int i = 0; i < 3*n_circles; i++) colors[i] = -1.0f + 2.0f*static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
@@ -174,28 +174,29 @@ int main(int argc, char** argv){
 
     // Attribute related to the pos buffer
     glBindBuffer(GL_ARRAY_BUFFER, pos);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(positions), positions, GL_STREAM_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, n_circles*2*sizeof(float), positions, GL_STREAM_DRAW);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 2*sizeof(float), (void*)0);
     glVertexAttribDivisor(1, 1);
     glEnableVertexAttribArray(1);
 
     // Attribute related to the color buffer
     glBindBuffer(GL_ARRAY_BUFFER, color);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(colors), colors, GL_STREAM_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, n_circles*3*sizeof(float), colors, GL_STREAM_DRAW);
     glVertexAttribPointer(2, 3, GL_FLOAT, GL_TRUE, 3*sizeof(float), (void*)0);
     glVertexAttribDivisor(2, 1);
     glEnableVertexAttribArray(2);
 
-
     // FPS seems to be set at 60 for my laptop
+    double t = 0.0;
+    double t_end = 0.0, t_start = 0.0;
     while(!glfwWindowShouldClose(window)) {
+        t_start = glfwGetTime();
         glfwPollEvents();    
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        double t = glfwGetTime();
-        double s = sinf(0.05f*t*M_PI);
-        double c = cosf(0.05f*t*M_PI);
+        double s = sinf(0.2f*t*M_PI);
+        double c = cosf(0.2f*t*M_PI);
         rotation[0] = zoom * scale * c; rotation[1] = zoom * -s;
         rotation[2] = zoom * scale * s; rotation[3] = zoom * c;
 
@@ -207,6 +208,10 @@ int main(int argc, char** argv){
         glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, n_circles);
 
         glfwSwapBuffers(window);
+        if (!paused){
+            t_end = glfwGetTime();
+            t += t_end - t_start;
+        }
     }
 
     glfwTerminate();
