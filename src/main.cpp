@@ -16,6 +16,9 @@ float zoom = 1.0f;
 float scale = 1.0f;
 std::array<float, 4> rotation;
 
+void keyCallback(GLFWwindow* window){
+
+}
 
 // Callback on window resize
 void framebuffer_size_callback(GLFWwindow* window, int width, int height){
@@ -81,7 +84,7 @@ int main(int argc, char** argv){
         printf("Failed to initialize glfw\n");
         return EXIT_FAILURE;
     }
-    glfwWindowHint(GLFW_SAMPLES, 2); // 2x antialiasing
+    glfwWindowHint(GLFW_SAMPLES, 1); // 2x antialiasing
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -123,84 +126,66 @@ int main(int argc, char** argv){
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
 
-    // Array of vertices
-    Vertex* vtx = new Vertex[6];
-
-    // Initialize their positions
-    vtx[0].x = -0.5f; vtx[0].y = -0.5f;
-    vtx[1].x =  0.5f; vtx[1].y = -0.5f;
-    vtx[2].x = -0.5f; vtx[2].y =  0.5f;
-    vtx[3].x =  0.6f; vtx[3].y = -0.5f;
-    vtx[4].x = -0.4f; vtx[4].y =  0.5f;
-    vtx[5].x =  0.6f; vtx[5].y =  0.5f;
-
-    // Initialize their colors
-    vtx[0].c[0] = 0.5f;vtx[0].c[1] = 0.0f;vtx[0].c[2] = 0.2f;
-    vtx[1].c[0] = 0.7f;vtx[1].c[1] = 0.0f;vtx[1].c[2] = 0.2f;
-    vtx[2].c[0] = 1.0f;vtx[2].c[1] = 0.0f;vtx[2].c[2] = 0.2f;
-    vtx[3].c[0] = 1.0f;vtx[3].c[1] = 0.0f;vtx[3].c[2] = 0.5f;
-    vtx[4].c[0] = 1.0f;vtx[4].c[1] = 0.0f;vtx[4].c[2] = 0.7f;
-    vtx[5].c[0] = 1.0f;vtx[5].c[1] = 0.0f;vtx[5].c[2] = 1.0f;
-
     // Create the vertex array object
-    GLuint VAO[2];
-    glGenVertexArrays(2, VAO);
-    glBindVertexArray(VAO[0]);
+    GLuint VAO;
+    glGenVertexArrays(1, &VAO);
+    glBindVertexArray(VAO);
 
-    // Create the vertex buffer object
-    GLuint VBO[2];
-    glGenBuffers(2, VBO);   // Generate the buffer
-    glBindBuffer(GL_ARRAY_BUFFER, VBO[0]);  // Make it the current openGL object
-    // Add data to the current buffer 
-    glBufferData(GL_ARRAY_BUFFER, 6*sizeof(Vertex), vtx, GL_STATIC_DRAW);
-    // 3. then set our vertex attributes pointers
-    glVertexAttribPointer(
-            0,                  // must math the layout in the shader
-            2,                  // size
-            GL_FLOAT,           // Type
-            GL_FALSE,           // Are the coords normalized ?
-            sizeof(Vertex),     // Stride
-            (void*)0            // offset
-    );
+    // Create the VBO
+    GLuint VBO[3];
+    glGenBuffers(3, VBO);
+    GLuint vtx = VBO[0], color = VBO[1], pos = VBO[2];
+
+    // Create the EBO 
+    GLuint EBO;
+    glGenBuffers(1, &EBO);
+
+    const int n_circles = 2;
+    float vertices[8] = {
+        1.0f,  1.0f,
+        1.0f, -1.0f,
+       -1.0f, -1.0f,
+       -1.0f,  1.0f
+    };
+    GLuint indices[6] = {
+        0, 1, 3,
+        1, 2, 3
+    };
+
+    float positions[2*n_circles] = {
+        -0.5f, 0.0f,
+         0.5f, 0.0f
+    };
+    float colors[3*n_circles] = {
+         0.7f, 0.0f, 0.3f,
+         0.3f, 0.0f, 0.7f
+    };
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+    // Copy vertices data into the buffer
+    glBindBuffer(GL_ARRAY_BUFFER, vtx);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+    // Attribute related to the vtx buffer
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2*sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(
-            1,                       // must math the layout in the shader
-            3,                       // size
-            GL_FLOAT,                // Type
-            GL_TRUE,                 // Are the coords normalized ?
-            sizeof(Vertex),         // Stride
-            (void*)(offsetof(Vertex, c)) // offset
-    );
+
+    // Attribute related to the pos buffer
+    glBindBuffer(GL_ARRAY_BUFFER, pos);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(positions), positions, GL_STREAM_DRAW);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 2*sizeof(float), (void*)0);
+    glVertexAttribDivisor(1, 1);
     glEnableVertexAttribArray(1);
 
-    Vertex *dv = new Vertex[10];
-    Disk d(0.7, 0.7);
-    d.v = dv;
-    d.draw();
-    glBindVertexArray(VAO[1]);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO[1]);  // Make it the current openGL object
-    // Add data to the current buffer 
-    glBufferData(GL_ARRAY_BUFFER, 10*sizeof(Vertex), dv, GL_STATIC_DRAW);
+    // Attribute related to the color buffer
+    glBindBuffer(GL_ARRAY_BUFFER, color);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(colors), colors, GL_STREAM_DRAW);
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_TRUE, 3*sizeof(float), (void*)0);
+    glVertexAttribDivisor(2, 1);
+    glEnableVertexAttribArray(2);
 
-    glVertexAttribPointer(
-            0,                  // must math the layout in the shader
-            2,                  // size
-            GL_FLOAT,           // Type
-            GL_FALSE,           // Are the coords normalized ?
-            sizeof(Vertex),     // Stride
-            (void*)0            // offset
-    );
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(
-            1,                       // must math the layout in the shader
-            3,                       // size
-            GL_FLOAT,                // Type
-            GL_TRUE,                 // Are the coords normalized ?
-            sizeof(Vertex),         // Stride
-            (void*)(offsetof(Vertex, c)) // offset
-    );
-    glEnableVertexAttribArray(1);
-    
 
     // FPS seems to be set at 60 for my laptop
     while(!glfwWindowShouldClose(window)) {
@@ -218,20 +203,12 @@ int main(int argc, char** argv){
         glGetIntegerv(GL_CURRENT_PROGRAM, &shaderProgram);
         glUniformMatrix2fv(glGetUniformLocation(shaderProgram, "rotation"), 1, false, &rotation[0]);
 
-        glBindVertexArray(VAO[0]);
-        glBindBuffer(GL_ARRAY_BUFFER, VBO[0]);  
-        glBufferData(GL_ARRAY_BUFFER, 6*sizeof(Vertex), vtx, GL_STREAM_DRAW);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
-
-        glBindVertexArray(VAO[1]);
-        glBindBuffer(GL_ARRAY_BUFFER, VBO[1]);  
-        glBufferData(GL_ARRAY_BUFFER, 10*sizeof(Vertex), dv, GL_STREAM_DRAW);
-        glDrawArrays(GL_TRIANGLE_FAN, 0, 10);
+        glBindVertexArray(VAO);
+        glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, n_circles);
 
         glfwSwapBuffers(window);
     }
 
-    delete [] vtx;
     glfwTerminate();
     return EXIT_SUCCESS;
 }
