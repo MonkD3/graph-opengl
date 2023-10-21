@@ -1,7 +1,7 @@
 #include "headers/glad/gl.h"
 #include <GLFW/glfw3.h>
 #include "headers/shader_functions.hpp"
-#include "headers/objects.hpp"
+#include "headers/graph.hpp"
 #include <cmath>
 #include <cstddef>
 #include <cstdlib>
@@ -15,7 +15,7 @@ bool leftButtonPressed = false;
 bool paused = false;
 
 float zoom = 1.0f;
-float scale = 1.0f;
+float aspect_ratio = 1.0f;
 std::array<float, 4> rotation;
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
@@ -25,7 +25,7 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 // Callback on window resize
 void framebuffer_size_callback(GLFWwindow* window, int width, int height){
     glViewport(0, 0, width, height);
-    scale = ((float) height)/width;
+    aspect_ratio = ((float) height)/width;
 }  
 
 // Callback on scrolling with mouse or pad. 
@@ -35,7 +35,6 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height){
 //   On the mouse from my PC it's only +1 or -1
 void scrollCallback(GLFWwindow* window, double xoffset, double yoffset){
     zoom += 0.03f * (float) yoffset;
-    zoom = fmax(0.1f, zoom);
 }
 
 // Callback on cursor movement
@@ -112,22 +111,31 @@ int main(int argc, char** argv){
         printf("Failed to initialize GLAD");
         return -1;
     }
+    // Compiling shader for lines
+    GLuint vertexShaderLines = loadShaders("./shaders/vertexShaderLines.glsl", GL_VERTEX_SHADER);
+
+    // ... And fragments
+    GLuint fragmentShaderLines = loadShaders("./shaders/fragmentShaderLines.glsl", GL_FRAGMENT_SHADER);
+
+    // .. now create a program using these shaders
+    GLuint shaderLinesProgram = loadProgram(vertexShaderLines, fragmentShaderLines);
+    // And as we already linked the program we no longer need the shaders
+    glDeleteShader(vertexShaderLines);
+    glDeleteShader(fragmentShaderLines);
 
     // Compiling shader for vertices
     GLuint vertexShader = loadShaders("./shaders/vertexShader.glsl", GL_VERTEX_SHADER);
-
-    // ... And fragments
     GLuint fragmentShader = loadShaders("./shaders/fragmentShader.glsl", GL_FRAGMENT_SHADER);
-
-    // .. now create a program using these shaders
     GLuint shaderProgram = loadProgram(vertexShader, fragmentShader);
-
-    // We can finally use the program
-    glUseProgram(shaderProgram);
 
     // And as we already linked the program we no longer need the shaders
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
+
+    Graph g("./graphs/wikipedia.csv");
+
+    
+    // ============= OpenGL Objects related to Vertices ===================
 
     // Create the vertex array object
     GLuint VAO;
@@ -138,12 +146,13 @@ int main(int argc, char** argv){
     GLuint VBO[3];
     glGenBuffers(3, VBO);
     GLuint vtx = VBO[0], color = VBO[1], pos = VBO[2];
+    g.VAO = VAO;
+    g.posVBO = pos;
 
     // Create the EBO 
     GLuint EBO;
     glGenBuffers(1, &EBO);
 
-    const int n_circles = 100;
     float vertices[8] = {
         1.0f,  1.0f,
         1.0f, -1.0f,
@@ -155,14 +164,12 @@ int main(int argc, char** argv){
         1, 2, 3
     };
 
-    float* positions = new float[n_circles * 2];
-    for (int i = 0; i < 2*n_circles; i++) positions[i] = -1.0f + 2.0f*static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
 
-    float* colors = new float[n_circles * 3];
-    for (int i = 0; i < 3*n_circles; i++) colors[i] = -1.0f + 2.0f*static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+    float* colors = new float[g.n_vtx * 3];
+    for (int i = 0; i < 3*g.n_vtx; i++) colors[i] = -1.0f + 2.0f*static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_READ);
 
     // Copy vertices data into the buffer
     glBindBuffer(GL_ARRAY_BUFFER, vtx);
@@ -173,18 +180,45 @@ int main(int argc, char** argv){
     glEnableVertexAttribArray(0);
 
     // Attribute related to the pos buffer
-    glBindBuffer(GL_ARRAY_BUFFER, pos);
-    glBufferData(GL_ARRAY_BUFFER, n_circles*2*sizeof(float), positions, GL_STREAM_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, g.posVBO);
+    glBufferData(GL_ARRAY_BUFFER, g.n_vtx*2*sizeof(float), &g.pos[0], GL_STREAM_DRAW);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 2*sizeof(float), (void*)0);
     glVertexAttribDivisor(1, 1);
     glEnableVertexAttribArray(1);
 
     // Attribute related to the color buffer
     glBindBuffer(GL_ARRAY_BUFFER, color);
-    glBufferData(GL_ARRAY_BUFFER, n_circles*3*sizeof(float), colors, GL_STREAM_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, g.n_vtx*3*sizeof(float), colors, GL_STREAM_DRAW);
     glVertexAttribPointer(2, 3, GL_FLOAT, GL_TRUE, 3*sizeof(float), (void*)0);
     glVertexAttribDivisor(2, 1);
     glEnableVertexAttribArray(2);
+
+    // ================ OpenGL objects related to edges ===================
+    GLuint VAOlines;
+    glGenVertexArrays(1, &VAOlines);
+    glBindVertexArray(VAOlines);
+   
+    GLuint EBOlines;
+    glGenBuffers(1, &EBOlines);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOlines);
+    
+
+    unsigned int *edges = new unsigned int[2*g.n_edges];
+    int k = 0;
+    for (unsigned int i = 0; i < g.n_vtx; i++){
+        for (int j = g.rowstart[i]; j < g.rowstart[i+1]; j++){
+            unsigned int neig = g.adj[j];
+            edges[k++] = i;
+            edges[k++] = neig;
+        }
+    }
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, 2*g.n_edges*sizeof(unsigned int), edges, GL_STATIC_READ);
+
+    glBindBuffer(GL_ARRAY_BUFFER, g.posVBO);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2*sizeof(float), (void*) 0);
+    glEnableVertexAttribArray(0);
+
+    glEnable(GL_LINE_SMOOTH);
 
     // FPS seems to be set at 60 for my laptop
     double t = 0.0;
@@ -195,25 +229,32 @@ int main(int argc, char** argv){
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        double s = sinf(0.2f*t*M_PI);
-        double c = cosf(0.2f*t*M_PI);
-        rotation[0] = zoom * scale * c; rotation[1] = zoom * -s;
-        rotation[2] = zoom * scale * s; rotation[3] = zoom * c;
+        // Compute world matrix
+        double s = 0.0f; // sinf(0.2f*t*M_PI);
+        double c = 1.0f; // cosf(0.2f*t*M_PI);
+        rotation[0] = zoom * aspect_ratio * c; rotation[1] = zoom * -s;
+        rotation[2] = zoom * aspect_ratio * s; rotation[3] = zoom * c;
 
-        GLint shaderProgram;
-        glGetIntegerv(GL_CURRENT_PROGRAM, &shaderProgram);
+        // Draw lines
+        glUseProgram(shaderLinesProgram);
+        glUniformMatrix2fv(glGetUniformLocation(shaderLinesProgram, "rotation"), 1, false, &rotation[0]);
+        glBindVertexArray(VAOlines);
+        glDrawElements(GL_LINES, 2*g.n_edges, GL_UNSIGNED_INT, 0);
+
+        // Draw nodes
+        glUseProgram(shaderProgram);
         glUniformMatrix2fv(glGetUniformLocation(shaderProgram, "rotation"), 1, false, &rotation[0]);
-
-        glBindVertexArray(VAO);
-        glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, n_circles);
+        g.draw();
 
         glfwSwapBuffers(window);
         if (!paused){
+            g.step();
             t_end = glfwGetTime();
             t += t_end - t_start;
         }
     }
 
+    delete [] edges;
     glfwTerminate();
     return EXIT_SUCCESS;
 }
