@@ -1,0 +1,13 @@
+* Graph-OpenGL
+
+Visualise networks (graphs) using OpenGL.
+
+Due to the nature of my master's thesis, I need to visualise communities in networks. I am dissatisfied by the usage of
+existing visualisation tools such as Gephi, iGraph etc and wanted to learn OpenGL for quite some time now.
+In consequence, I am developping this software to fit my visualisation needs.
+For now I'm looking to add features that helps me towards this specific purpose.
+
+* TODO [/]
+- [ ] Read partition file and implement coloring per partition. Dynamically choose the partitioning to show.
+- [ ] Implement different spatialisation algorithms (force Atlas, spring)
+- [ ] Implement a "stepping" behaviour. To visualise movements of vertices from one partition to the other.
