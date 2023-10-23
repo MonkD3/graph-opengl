@@ -4,6 +4,8 @@ BUILDDIR=build
 CCPP=g++
 CC=gcc
 
+CFLAGS= -Wall -Wextra -Wshadow
+
 SRCS_CPP=$(wildcard $(SRCDIR)/*.cpp)
 OBJ_CPP=$(SRCS_CPP:$(SRCDIR)/%.cpp=$(BUILDDIR)/%.o)
 
@@ -14,6 +16,9 @@ INC=-I$(SRCDIR)/headers -I/usr/include/GLFW -I/usr/include/GL
 LIB=-lGL -lglfw -lX11 -lpthread -lXrandr -lXi -ldl
 
 default: $(BUILDDIR)/graph
+
+fast: 
+	CFLAGS="$(CFLAGS) -flto -O3" $(MAKE) 
 
 $(BUILDDIR)/graph: $(OBJ_C) $(OBJ_CPP) 
 	$(CCPP) $(CFLAGS) $(INC) $(LIB) $^ -o $@

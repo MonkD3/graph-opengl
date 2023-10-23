@@ -17,6 +17,7 @@ bool paused = false;
 float zoom = 1.0f;
 float aspect_ratio = 1.0f;
 std::array<float, 4> rotation;
+float translationX = 0., translationY = 0.;
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) paused = !paused; 
@@ -35,13 +36,13 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height){
 //   On the mouse from my PC it's only +1 or -1
 void scrollCallback(GLFWwindow* window, double xoffset, double yoffset){
     zoom += 0.03f * (float) yoffset;
+    zoom = std::max(0.0f, zoom);
 }
 
 // Callback on cursor movement
 void cursorCallback(GLFWwindow* window, double x, double y){
     static bool first = true;
     static double mouseX=0., mouseY=0.;
-    static double translationX = 0., translationY = 0.;
 
     int width, height;
     glfwGetWindowSize(window, &width, &height);
@@ -57,9 +58,6 @@ void cursorCallback(GLFWwindow* window, double x, double y){
     translationX -= mouseX - x;
     translationY -= mouseY - y;
 
-    GLint shaderProgram;
-    glGetIntegerv(GL_CURRENT_PROGRAM, &shaderProgram);
-    glUniform2f(glGetUniformLocation(shaderProgram, "translation"), translationX, translationY);
     mouseX = x;
     mouseY = y;
 }
@@ -132,8 +130,7 @@ int main(int argc, char** argv){
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
 
-    Graph g("./graphs/wikipedia.csv");
-
+    Graph g("./graphs/flups_512cpu.csv", "./graphs/flups_512cpu_part.csv");
     
     // ============= OpenGL Objects related to Vertices ===================
 
@@ -165,8 +162,15 @@ int main(int argc, char** argv){
     };
 
 
-    float* colors = new float[g.n_vtx * 3];
-    for (int i = 0; i < 3*g.n_vtx; i++) colors[i] = -1.0f + 2.0f*static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+    std::vector<float> colors;
+    generate_colors(colors, 3*g.n_vtx);
+    
+    for (size_t i = 0; i < g.n_vtx; i++) {
+        int community = g.hierarchies[g.curr_hierarchy][i];
+        g.colors[3*i]   = colors[3*community];
+        g.colors[3*i+1] = colors[3*community+1];
+        g.colors[3*i+2] = colors[3*community+2];
+    }
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_READ);
@@ -188,7 +192,7 @@ int main(int argc, char** argv){
 
     // Attribute related to the color buffer
     glBindBuffer(GL_ARRAY_BUFFER, color);
-    glBufferData(GL_ARRAY_BUFFER, g.n_vtx*3*sizeof(float), colors, GL_STREAM_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, g.n_vtx*3*sizeof(float), &g.colors[0], GL_STREAM_DRAW);
     glVertexAttribPointer(2, 3, GL_FLOAT, GL_TRUE, 3*sizeof(float), (void*)0);
     glVertexAttribDivisor(2, 1);
     glEnableVertexAttribArray(2);
@@ -208,8 +212,10 @@ int main(int argc, char** argv){
     for (unsigned int i = 0; i < g.n_vtx; i++){
         for (int j = g.rowstart[i]; j < g.rowstart[i+1]; j++){
             unsigned int neig = g.adj[j];
-            edges[k++] = i;
-            edges[k++] = neig;
+            if (neig > i){
+                edges[k++] = i;
+                edges[k++] = neig;
+            }
         }
     }
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, 2*g.n_edges*sizeof(unsigned int), edges, GL_STATIC_READ);
@@ -219,6 +225,8 @@ int main(int argc, char** argv){
     glEnableVertexAttribArray(0);
 
     glEnable(GL_LINE_SMOOTH);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable( GL_BLEND );
 
     // FPS seems to be set at 60 for my laptop
     double t = 0.0;
@@ -238,12 +246,14 @@ int main(int argc, char** argv){
         // Draw lines
         glUseProgram(shaderLinesProgram);
         glUniformMatrix2fv(glGetUniformLocation(shaderLinesProgram, "rotation"), 1, false, &rotation[0]);
+        glUniform2f(glGetUniformLocation(shaderLinesProgram, "translation"), translationX, translationY);
         glBindVertexArray(VAOlines);
-        glDrawElements(GL_LINES, 2*g.n_edges, GL_UNSIGNED_INT, 0);
+        glDrawElements(GL_LINES, g.n_edges, GL_UNSIGNED_INT, 0);
 
         // Draw nodes
         glUseProgram(shaderProgram);
         glUniformMatrix2fv(glGetUniformLocation(shaderProgram, "rotation"), 1, false, &rotation[0]);
+        glUniform2f(glGetUniformLocation(shaderProgram, "translation"), translationX, translationY);
         g.draw();
 
         glfwSwapBuffers(window);

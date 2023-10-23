@@ -33,23 +33,35 @@ struct EdgeComp {
     }
 };
 
+
+void generate_colors(std::vector<float>& colors, size_t n);
+
 class Graph {
+
     public:
         size_t n_vtx;
         size_t n_edges;
 
         GLuint VAO; // GL vertex array object relating to this object
-        GLuint posVBO;
+        GLuint posVBO; // GL buffer object relating to the positionning of the vertices
 
         // CSR representation of the graph
         std::vector<size_t> rowstart;
         std::vector<size_t> adj;
         std::vector<double> adjw;
 
+        // Hierarchy of communities
+        int n_hierarchy = 1;
+        int curr_hierarchy = 0; // Current hierarchy
+        std::vector<std::vector<int>> hierarchies;// Matrix of size (n_hierarchy x n_vtx)
+
         // Position of the vertices
         std::vector<float> pos;
+        std::vector<float> colors;
 
-        Graph(const char* fname);
+        Graph(const char* fedges, const char* fpart);
+        void read_edgelist_file(const char* fedges);
+        void read_partition_file(const char* fpart);
 
         // Compute one step of positionning algorithm
         void step();
