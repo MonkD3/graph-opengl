@@ -42,13 +42,11 @@ class Graph {
         size_t n_vtx;
         size_t n_edges;
 
-        GLuint VAO; // GL vertex array object relating to this object
-        GLuint posVBO; // GL buffer object relating to the positionning of the vertices
-
         // CSR representation of the graph
-        std::vector<size_t> rowstart;
-        std::vector<size_t> adj;
-        std::vector<double> adjw;
+        std::vector<size_t> rowstart; // Index at which the neighbors of i starts in adj
+        std::vector<size_t> adj;  // Neighbor
+        std::vector<double> adjw; // Weight of the link 
+        std::vector<float> wDeg; // Weighted output degree of the vertex
 
         // Hierarchy of communities
         int n_hierarchy = 1;
@@ -65,8 +63,6 @@ class Graph {
 
         // Compute one step of positionning algorithm
         void step();
-
-        void draw();
 };
 
 #endif // __GRAPH_HPP

@@ -12,7 +12,7 @@ void main() {
         discard;
 
     if ((0.75*radius)*(0.75*radius) < dotprod)
-        FragColor = vec4(0.0, 0.0, 0.0, 0.0);
+        FragColor = vec4(0.0, 0.0, 0.0, 1.0);
     else 
         FragColor = vertexColor;
 } 
