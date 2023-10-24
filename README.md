@@ -7,7 +7,9 @@ existing visualisation tools such as Gephi, iGraph etc and wanted to learn OpenG
 In consequence, I am developping this software to fit my visualisation needs.
 For now I'm looking to add features that helps me towards this specific purpose.
 
-* TODO [/]
+  ![Example.jpg](./img/visualisation.png)
+
+* TODO 
 - [ ] Read partition file and implement coloring per partition. Dynamically choose the partitioning to show with the keyboard
 - [ ] Implement different spatialisation algorithms (force Atlas, spring)
 - [ ] Implement a "stepping" behaviour. To visualise movements of vertices from one partition to the other
