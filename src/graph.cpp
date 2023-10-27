@@ -11,13 +11,6 @@
 
 #include <GLFW/glfw3.h>
 
-
-
-void generate_colors(std::vector<float>& colors, size_t n){
-    colors.reserve(3*n);
-    for (int i = 0; i < 3*n; i++) colors[i] = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-}
-
 void Graph::read_edgelist_file(const char* fname){
     FILE* fh = fopen(fname, "r");
     if (fh == NULL){
@@ -77,7 +70,7 @@ void Graph::read_edgelist_file(const char* fname){
     for (size_t i = 0; i < n_vtx; i++) wDeg[i] = 0.0;
 
     size_t curr_edge = 0;
-    rowstart.push_back(0.0);
+    rowstart.push_back(0);
     double max_w = 0.0;
     for (size_t i = 0; i < n_vtx; i++){
         int degree = 0;
@@ -144,14 +137,14 @@ void Graph::step(){
     for (size_t i = 0; i < 2*n_vtx; i++) dp[i] = 0.0f;
 
     // Gravity force : Pull back every node towards the center of the canvas 
-    const float Fg = 1.0f;
+    const float Fg = 0.1f;
     const float dt = 1.0f/20.0f;
     for (size_t i = 0; i < n_vtx; i++){
         const float px = pos[2*i];
         const float py = pos[2*i+1];
         const float norm = std::hypot(px, py);
-        dp[2*i]   -= Fg * px / norm * Fg;
-        dp[2*i+1] -= Fg * py / norm * Fg;
+        dp[2*i]   -= px / norm * Fg;
+        dp[2*i+1] -= py / norm * Fg;
     }
 
     // Repulsion force : simply use the reverse of the distance between nodes

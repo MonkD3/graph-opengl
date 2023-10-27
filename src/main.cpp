@@ -3,6 +3,7 @@
 #include "headers/shader_functions.hpp"
 #include "headers/app.hpp"
 #include "headers/graph.hpp"
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <cstdlib>
@@ -12,10 +13,18 @@
 #include <vector>
 #include <array>
 
-App app("./graphs/flups_512cpu.csv", "./graphs/flups_512cpu_part.csv");
+App app("./graphs/edges_FD_scheme.csv", "./graphs/edges_FD_part.csv");
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) app.paused = !app.paused; 
+    if (key == GLFW_KEY_RIGHT && action == GLFW_PRESS) {
+        app.g->curr_hierarchy = std::min(app.g->curr_hierarchy + 1, app.g->n_hierarchy - 1); 
+        app.updateColors();
+    }
+    if (key == GLFW_KEY_LEFT && action == GLFW_PRESS) {
+        app.g->curr_hierarchy = std::max(app.g->curr_hierarchy - 1, 0); 
+        app.updateColors();
+    }
 }
 
 // Callback on window resize

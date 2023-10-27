@@ -27,6 +27,7 @@ class App {
         float zoom = 1.0f;
         float aspectRatio = 1.0f;
         std::array<float, 4> sceneMVP = {0.0f, 0.0f, 0.0f, 0.0f};
+        std::vector<float> colors;
 
         // Graph 
         Graph* g;
@@ -41,6 +42,10 @@ class App {
 
         // Draw a frame
         void draw();
+
+        // Update colors 
+        void generateColors();
+        void updateColors();
 
         // scene 
         void computeTransform();

@@ -33,9 +33,6 @@ struct EdgeComp {
     }
 };
 
-
-void generate_colors(std::vector<float>& colors, size_t n);
-
 class Graph {
 
     public:

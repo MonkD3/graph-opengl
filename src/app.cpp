@@ -1,5 +1,6 @@
 #include "headers/app.hpp"
 #include "headers/shader_functions.hpp"
+#include <cstdlib>
 #include <stdio.h>
 
 App::App(const char* fedges, const char* fpart){
@@ -87,9 +88,7 @@ void App::loadOpenGLObjects(){
        -1.0f,  1.0f
     };
 
-    std::vector<float> colors;
-    generate_colors(colors, 3*g->n_vtx);
-    
+    generateColors();
     for (size_t i = 0; i < g->n_vtx; i++) {
         int community = g->hierarchies[g->curr_hierarchy][i];
         g->colors[3*i]   = colors[3*community];
@@ -182,4 +181,24 @@ void App::computeTransform(){
     const float c = 1.0f;
     sceneMVP[0] = zoom * aspectRatio * c; sceneMVP[1] = zoom * -s;
     sceneMVP[2] = zoom * aspectRatio * s; sceneMVP[3] = zoom * c;
+}
+
+void App::generateColors(){
+    colors.reserve(3*g->n_vtx);
+    for (int i = 0; i < 3*g->n_vtx; i++) colors[i] = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+
+}
+
+void App::updateColors(){
+    glBindVertexArray(VAO[1]);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO[1]);
+    
+    for (size_t i = 0; i < g->n_vtx; i++) {
+        int community = g->hierarchies[g->curr_hierarchy][i];
+        g->colors[3*i]   = colors[3*community];
+        g->colors[3*i+1] = colors[3*community+1];
+        g->colors[3*i+2] = colors[3*community+2];
+    }
+
+    glBufferData(GL_ARRAY_BUFFER, g->n_vtx*3*sizeof(float), &g->colors[0], GL_STATIC_READ);
 }
