@@ -23,6 +23,9 @@ class App {
         float translationX = 0.0f; // User pan in X
         float translationY = 0.0f; // User pan in Y
 
+        float mouseX = 0.0f; // Last recorded mouse pos in X
+        float mouseY = 0.0f; // Last recorded mouse pos in Y
+
         // Matrix transformation of the scene
         float zoom = 1.0f;
         float aspectRatio = 1.0f;

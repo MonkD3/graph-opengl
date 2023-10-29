@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <vector>
 #include <array>
+#include <iostream>
 
 App app("./graphs/edges_FD_scheme.csv", "./graphs/edges_FD_part.csv");
 
@@ -39,14 +40,30 @@ void framebufferSizeCallback(GLFWwindow* window, int width, int height){
 //
 //   On the mouse from my PC it's only +1 or -1
 void scrollCallback(GLFWwindow* window, double xoffset, double yoffset){
-    app.zoom += 0.03f * (float) yoffset;
-    app.zoom = std::max(0.001f, app.zoom);
+    const float zoomStrength = 1.5f;
+    const bool zoomIn = yoffset > 0;
+    double xpos, ypos;
+    int width, height;
+
+    glfwGetCursorPos(window, &xpos, &ypos);
+    glfwGetWindowSize(window, &width, &height);
+
+    float newZoom = zoomIn ? zoomStrength : 1.f / zoomStrength;
+    newZoom = std::max(1e-3f, newZoom * app.zoom);
+    xpos = zoomIn ? (2.f*xpos - width)/width   : 0.f;
+    ypos = zoomIn ? (height - 2.f*ypos)/height : 0.f;
+
+    const float tranScaling = newZoom / app.zoom;
+
+    app.zoom = newZoom;
+    app.translationX = (app.translationX - xpos) * tranScaling + xpos;
+    app.translationY = (app.translationY - ypos) * tranScaling + ypos;
 }
 
 // Callback on cursor movement
 void cursorCallback(GLFWwindow* window, double x, double y){
     static bool first = true;
-    static double mouseX=0., mouseY=0.;
+    static float mouseX = 0.f, mouseY = 0.f;
 
     int width, height;
     glfwGetWindowSize(window, &width, &height);
@@ -58,10 +75,8 @@ void cursorCallback(GLFWwindow* window, double x, double y){
         first = false;
         return;
     }
-
     app.translationX -= mouseX - x;
     app.translationY -= mouseY - y;
-
     mouseX = x;
     mouseY = y;
 }
