@@ -36,25 +36,33 @@ void framebufferSizeCallback(GLFWwindow* window, int width, int height){
 // Callback on scrolling with mouse or pad. 
 //   - Classical mouse will only provide yoffset 
 //   - pad may provide x and y offsets
-//
 //   On the mouse from my PC it's only +1 or -1
+//
+//   Compute a translation-scale-translation so that the zoom is done 
+//   towards the cursos rather then the center of the scene. 
+//   2d computation looks like this :
+//  translation = (translation towards center) (scaling) (translation towards mouse) (current translation)
+//      [tx]   [1 0 mx] [zx 0  0] [1 0 -mx] [tx]
+//      [ty] = [0 1 my] [0  zy 0] [0 1 -mx] [ty]
+//      [1]    [0 0 1 ] [0  0  1] [0 0   1] [1]
+//  where tx/ty are the translation in x/y, zx/zy are the zoom and mx/my are the position of the mouse.
 void scrollCallback(GLFWwindow* window, double xoffset, double yoffset){
-    const float zoomStrength = 1.5f;
-    const bool zoomIn = yoffset > 0;
     double xpos, ypos;
     int width, height;
-
     glfwGetCursorPos(window, &xpos, &ypos);
     glfwGetWindowSize(window, &width, &height);
 
-    float newZoom = zoomIn ? zoomStrength : 1.f / zoomStrength;
-    newZoom = std::max(1e-3f, newZoom * app.zoom);
-    xpos = zoomIn ? (2.f*xpos - width)/width   : 0.f;
-    ypos = zoomIn ? (height - 2.f*ypos)/height : 0.f;
+    const float zoomStrength = 1.5f;
+    float newZoom;
+    if (yoffset > 0) newZoom = zoomStrength; // zooming in
+    else newZoom = 1.f / zoomStrength;       // zomming out
 
+    newZoom = std::max(0.001f, newZoom * app.zoom);
     const float tranScaling = newZoom / app.zoom;
-
     app.zoom = newZoom;
+
+    xpos = (2.f*xpos - width)/width;
+    ypos = (height - 2.f*ypos)/height;
     app.translationX = (app.translationX - xpos) * tranScaling + xpos;
     app.translationY = (app.translationY - ypos) * tranScaling + ypos;
 }
