@@ -12,7 +12,6 @@
 #include <stdio.h>
 #include <vector>
 #include <array>
-#include <iostream>
 
 App app("./graphs/edges_FD_scheme.csv", "./graphs/edges_FD_part.csv");
 
@@ -63,7 +62,7 @@ void scrollCallback(GLFWwindow* window, double xoffset, double yoffset){
 // Callback on cursor movement
 void cursorCallback(GLFWwindow* window, double x, double y){
     static bool first = true;
-    static float mouseX = 0.f, mouseY = 0.f;
+    static double mouseX = 0., mouseY = 0.;
 
     int width, height;
     glfwGetWindowSize(window, &width, &height);
