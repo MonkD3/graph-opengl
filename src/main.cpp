@@ -36,17 +36,41 @@ void framebufferSizeCallback(GLFWwindow* window, int width, int height){
 // Callback on scrolling with mouse or pad. 
 //   - Classical mouse will only provide yoffset 
 //   - pad may provide x and y offsets
-//
 //   On the mouse from my PC it's only +1 or -1
+//
+//   Compute a translation-scale-translation so that the zoom is done 
+//   towards the cursos rather then the center of the scene. 
+//   2d computation looks like this :
+//  translation = (translation towards center) (scaling) (translation towards mouse) (current translation)
+//      [tx]   [1 0 mx] [zx 0  0] [1 0 -mx] [tx]
+//      [ty] = [0 1 my] [0  zy 0] [0 1 -mx] [ty]
+//      [1]    [0 0 1 ] [0  0  1] [0 0   1] [1]
+//  where tx/ty are the translation in x/y, zx/zy are the zoom and mx/my are the position of the mouse.
 void scrollCallback(GLFWwindow* window, double xoffset, double yoffset){
-    app.zoom += 0.03f * (float) yoffset;
-    app.zoom = std::max(0.001f, app.zoom);
+    double xpos, ypos;
+    int width, height;
+    glfwGetCursorPos(window, &xpos, &ypos);
+    glfwGetWindowSize(window, &width, &height);
+
+    const float zoomStrength = 1.5f;
+    float newZoom;
+    if (yoffset > 0) newZoom = zoomStrength; // zooming in
+    else newZoom = 1.f / zoomStrength;       // zomming out
+
+    newZoom = std::max(0.001f, newZoom * app.zoom);
+    const float tranScaling = newZoom / app.zoom;
+    app.zoom = newZoom;
+
+    xpos = (2.f*xpos - width)/width;
+    ypos = (height - 2.f*ypos)/height;
+    app.translationX = (app.translationX - xpos) * tranScaling + xpos;
+    app.translationY = (app.translationY - ypos) * tranScaling + ypos;
 }
 
 // Callback on cursor movement
 void cursorCallback(GLFWwindow* window, double x, double y){
     static bool first = true;
-    static double mouseX=0., mouseY=0.;
+    static double mouseX = 0., mouseY = 0.;
 
     int width, height;
     glfwGetWindowSize(window, &width, &height);
@@ -58,10 +82,8 @@ void cursorCallback(GLFWwindow* window, double x, double y){
         first = false;
         return;
     }
-
     app.translationX -= mouseX - x;
     app.translationY -= mouseY - y;
-
     mouseX = x;
     mouseY = y;
 }
