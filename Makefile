@@ -21,7 +21,7 @@ fast:
 	CFLAGS="$(CFLAGS) -flto -O3" $(MAKE) 
 
 $(BUILDDIR)/graph: $(OBJ_C) $(OBJ_CPP) 
-	$(CCPP) $(CFLAGS) $(INC) $(LIB) $^ -o $@
+	$(CCPP) $(CFLAGS) $(INC) $^ -o $@ $(LIB)
 
 $(OBJ_CPP): $(BUILDDIR)/%.o: $(SRCDIR)/%.cpp
 	$(CCPP) $(CFLAGS) -c $< -o $@ $(INC) $(LIB)
