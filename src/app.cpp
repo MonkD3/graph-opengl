@@ -3,11 +3,9 @@
 #include <cstdlib>
 #include <stdio.h>
 
-App::App(const char* fedges, const char* fpart){
-    g = new Graph(fedges, fpart);
-}
+App::App(){}
 
-int App::init(){
+int App::init(const char* fedges, const char* fpart){
     if (!glfwInit()){
         printf("Failed to initialize glfw\n");
         return -1;
@@ -30,9 +28,11 @@ int App::init(){
         return -1;
     }
 
+    g = new Graph(fedges, fpart);
+
     compileShaders();
     loadOpenGLObjects();
-    
+
     return 0;
 }
 

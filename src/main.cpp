@@ -5,6 +5,7 @@
 #include "headers/graph.hpp"
 #include <algorithm>
 #include <cmath>
+#include <complex>
 #include <cstddef>
 #include <cstdlib>
 #include <math.h>
@@ -12,8 +13,61 @@
 #include <stdio.h>
 #include <vector>
 #include <array>
+#include <argp.h>
 
-App app("./graphs/edges_FD_scheme.csv", "./graphs/edges_FD_part.csv");
+App app;
+
+const char *argp_program_version = "alpha";
+static char doc[] = "Display networks using OpenGL";
+
+static char args_doc[] = "edgefile partitionfile";
+static struct argp_option options[3] = {
+    {"edge",      'e', "FILE", 0, "File containing the edge list of the graph", 0 },
+    {"partition", 'p', "FILE", 0, "File containing the partitioning"          , 0 },
+    {0, 0, 0, 0, 0, 0}
+};
+
+struct arguments {
+    const char *edgefile, *partfile;
+};
+
+static error_t parse_opt (int key, char *arg, struct argp_state *state) {
+    /* Get the input argument from argp_parse, which we
+       know is a pointer to our arguments structure. */
+    struct arguments *arguments = (struct arguments* ) state->input;
+
+    switch (key) {
+        case 'e':
+            arguments->edgefile = arg;
+            break;
+        case 'p':
+            arguments->partfile = arg;
+            break;
+
+        case ARGP_KEY_ARG: {
+               /* Too many arguments. */
+               if (state->arg_num >= 0) argp_usage(state);
+
+               // Add positional arguments here
+               switch(state->arg_num) {
+                   case 0:
+                       break;
+               }
+               break;
+        }
+        case ARGP_KEY_END:
+               /* Not enough arguments. */
+               if (state->arg_num < 0) argp_usage (state);
+               break;
+
+        default:
+            return ARGP_ERR_UNKNOWN;
+    }
+    return 0;
+}
+
+static struct argp argp = { options, parse_opt, args_doc, doc, 0, 0, 0};
+
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) app.paused = !app.paused; 
@@ -105,7 +159,20 @@ void mouseCallback(GLFWwindow* window, int button, int action, int mods){
 
 int main(int argc, char** argv){
 
-    app.init();
+    struct arguments args;
+    args.edgefile = NULL;
+    args.partfile = NULL;
+
+    argp_parse(&argp, argc, argv, 0, 0, (void*) &args);
+
+    if (args.edgefile == NULL || args.partfile == NULL){
+        printf("Error: -e and -p options are required\n");
+        return EXIT_FAILURE;
+    }
+
+    printf("%s, %s\n", args.edgefile, args.partfile);
+
+    app.init(args.edgefile, args.partfile);
 
     glfwSetFramebufferSizeCallback(app.window, framebufferSizeCallback);
     glfwSetMouseButtonCallback(app.window, mouseCallback);

@@ -10,7 +10,6 @@ For now I'm looking to add features that helps me towards this specific purpose.
   ![Example.jpg](./img/visualisation.png)
 
 * TODO 
-- [ ] Implement a proper command line interface
 - [ ] Make the coloring better. (Don't use random colors)
 - [ ] Implement different spatialisation algorithms (force Atlas, spring)
 - [ ] Implement a "stepping" behaviour. To visualise movements of vertices from one partition to the other
@@ -21,3 +20,4 @@ For now I'm looking to add features that helps me towards this specific purpose.
 * DONE 
 - [X] Read partition file and implement coloring per partition. Dynamically choose the partitioning to show with the keyboard.
 - [X] Adapt the zooming behaviour to zoom towards the cursor. (instead of the center of the scene)
+- [X] Implement a proper command line interface

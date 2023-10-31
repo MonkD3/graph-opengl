@@ -10,7 +10,7 @@ class App {
 
     public:
         // OpenGL objects
-        GLFWwindow* window;
+        GLFWwindow* window = nullptr;
         GLuint VAO[2]; // 0: VAO for nodes, 1: VAO for edges
         GLuint VBO[4]; // 0: base shape, 1 : color, 2: position, 3: size
         GLuint EBO[1]; // EBO for lines
@@ -30,13 +30,13 @@ class App {
         std::vector<float> colors;
 
         // Graph 
-        Graph* g;
+        Graph* g = nullptr;
 
         // Constructor
-        App(const char* fedges, const char* fpart);
+        App();
 
         // Initialize the app 
-        int init();
+        int init(const char* fedges, const char* fpart);
         int compileShaders();
         void loadOpenGLObjects();
 
