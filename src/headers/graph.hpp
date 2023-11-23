@@ -44,6 +44,7 @@ class Graph {
         std::vector<size_t> adj;  // Neighbor
         std::vector<double> adjw; // Weight of the link 
         std::vector<float> wDeg; // Weighted output degree of the vertex
+        std::vector<size_t> vtxw; // Size of the vertex
 
         // Hierarchy of communities
         int n_hierarchy = 1;
